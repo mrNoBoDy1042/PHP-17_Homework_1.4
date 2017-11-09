@@ -2,11 +2,28 @@
 // Исходные данные
 $key = 'a7549ea16658ae45d098dd4e1f637108';
 $city = 'Moscow';
-// Составляем адрес для обращения и получаем json объект
-$request = trim('http://api.openweathermap.org/data/2.5/weather?q='.$city.'&appid='.$key);
-$json = file_get_contents($request);
-// Сохраняем json
-file_put_contents('data.txt',$json);
+// Проходим по всем файлам с расширением .json
+foreach (glob("*.json") as $file) {
+  // Если файл был создан менее часа назад (имя файла - дата создания)
+  // то обрабатываем данные из него
+  if (intval(basename($file, ".json"))-(60*60) <= time()){
+    $json = file_get_contents($file);
+    $message =  "Data from file";
+  }
+  // Иначе удаляем файл с устаревшими данными
+  else {unlink($file);}
+}
+// Если в $json ничего нет, значит актуальных данных нет
+// Тогда получаем данные api
+if (is_null($json)) {
+    $request = trim('http://api.openweathermap.org/data/2.5/weather?q='.$city.'&appid='.$key);
+    $json = file_get_contents($request);
+
+    // Сохраняем json
+    file_put_contents(time().'.json',$json);
+    $message = "Data from OpenWeather";
+}
+
 // Обрабатываем json и сохраняем необходимые данные
 $json = json_decode($json, true);
 $temp = round(($json["main"]["temp"] - 273.15),1);
@@ -68,6 +85,7 @@ $pressure = $json["main"]["pressure"];
          <p>Wind speed: <?echo $wind["speed"];?> m/s</p>
          <p>Pressure: <?echo $pressure;?> </p>
        </div>
+       <p style="font-size: 75%"><?echo "$message";?></p>
      </div>
    </body>
  </html>
